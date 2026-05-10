@@ -30,6 +30,7 @@ return [
 
     'mail' => [
         'enabled' => true,
+        'test_enabled' => false,
         'to_email' => 'CHANGE_ME_TO@example.com',
         'from_email' => 'CHANGE_ME_FROM@example.com',
         'from_name' => 'TQQQ Drawdown Alert',
