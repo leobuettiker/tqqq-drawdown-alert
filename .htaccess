@@ -1,0 +1,3 @@
+RewriteEngine On
+
+RewriteRule ^(?:app|local|sql|data)/ - [F,L]
