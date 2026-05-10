@@ -1,0 +1,9 @@
+/local/
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+/vendor/
+/node_modules/
