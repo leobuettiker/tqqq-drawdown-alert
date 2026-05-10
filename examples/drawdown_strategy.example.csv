@@ -1,0 +1,5 @@
+asset_ticker,level_name,drawdown_percent,amount_to_buy
+TQQQ,Level 1,-20,1000
+TQQQ,Level 2,-30,1500
+TQQQ,Level 3,-40,2500
+TQQQ,Level 4,-50,4000
