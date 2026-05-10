@@ -59,6 +59,16 @@ try {
     }
 }
 
+$aiQueryCount = null;
+$aiQueryCountHint = 'stored AI summaries';
+try {
+    $aiQueryCountStmt = $pdo->prepare('SELECT COUNT(*) AS cnt FROM periodic_summary WHERE ticker = :ticker');
+    $aiQueryCountStmt->execute(['ticker' => $ticker]);
+    $aiQueryCount = (int)($aiQueryCountStmt->fetch()['cnt'] ?? 0);
+} catch (PDOException $e) {
+    $aiQueryCountHint = $e->getCode() === '42S02' ? 'summary table missing' : 'currently unavailable';
+}
+
 $labels = array_map(function ($r) { return $r['price_date']; }, $recentRows);
 $navValues = array_map(function ($r) { return (float)$r['nav']; }, $recentRows);
 $athValues = array_map(function () use ($ath) { return $ath ? (float)$ath['ath_nav'] : null; }, $recentRows);
@@ -126,6 +136,7 @@ $drawdownClass = $drawdown === null ? 'neutral' : ($drawdown <= -30 ? 'danger' :
 <section class="cards-grid">
 <article class="stat-card"><div class="stat-card__icon">↻</div><div><div class="stat-card__label">Latest import</div><div class="stat-card__value stat-card__value--small"><?= $importJob ? h($importJob['finished_at']) : '–' ?></div><div class="stat-card__hint"><?= $importJob ? h($importJob['status']) . ' · ' . (int)$importJob['rows_processed'] . ' rows' : 'No job log' ?></div></div></article>
 <article class="stat-card"><div class="stat-card__icon">☷</div><div><div class="stat-card__label">History</div><div class="stat-card__value"><?= format_decimal($priceCount, 0) ?></div><div class="stat-card__hint">stored NAV rows</div></div></article>
+<article class="stat-card"><div class="stat-card__icon">✦</div><div><div class="stat-card__label">AI queries</div><div class="stat-card__value"><?= $aiQueryCount !== null ? format_decimal($aiQueryCount, 0) : '–' ?></div><div class="stat-card__hint"><?= h($aiQueryCountHint) ?></div></div></article>
 </section>
 <section class="content-grid">
 <aside class="panel panel--side"><h2>System status</h2><div class="timeline"><div class="timeline-item"><div class="timeline-dot"></div><div><strong>Data import</strong><span><?= $importJob ? h($importJob['finished_at']) : 'Never run' ?></span></div></div><div class="timeline-item"><div class="timeline-dot"></div><div><strong>Alert-Check</strong><span><?= $alertJob ? h($alertJob['finished_at']) : 'Never run' ?></span></div></div><div class="timeline-item"><div class="timeline-dot"></div><div><strong>AI Summary</strong><span><?= $summaryJob ? h($summaryJob['finished_at']) : 'Never run' ?></span></div></div><div class="timeline-item"><div class="timeline-dot <?= $lastError ? 'timeline-dot--error' : 'timeline-dot--ok' ?>"></div><div><strong>Latest error</strong><span><?= $lastError ? h($lastError['finished_at']) : 'No errors in the log' ?></span></div></div></div><?php if ($lastError): ?><div class="error-box"><strong><?= h($lastError['job_name']) ?></strong><p><?= h(short_text((string)$lastError['message'], 240)) ?></p></div><?php else: ?><div class="calm-box"><strong>All quiet</strong><p>No error is currently stored in the job log.</p></div><?php endif; ?></aside>
