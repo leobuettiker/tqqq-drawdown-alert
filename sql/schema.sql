@@ -67,3 +67,16 @@ CREATE TABLE IF NOT EXISTS job_log (
     KEY idx_job_log_name_time (job_name, finished_at),
     KEY idx_job_log_status_time (status, finished_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS periodic_summary (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    ticker VARCHAR(32) NOT NULL,
+    period_start DATETIME NOT NULL,
+    period_end DATETIME NOT NULL,
+    subject VARCHAR(255) NOT NULL,
+    summary_text MEDIUMTEXT NOT NULL,
+    created_at DATETIME NOT NULL,
+
+    KEY idx_periodic_summary_created (created_at),
+    KEY idx_periodic_summary_ticker_created (ticker, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
