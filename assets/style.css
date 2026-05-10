@@ -80,7 +80,8 @@ h1 { margin-bottom: 14px; max-width: 760px; font-size: clamp(2.7rem,7vw,6.2rem);
 .chart-action-button:hover,.chart-close-button:hover { transform:translateY(-1px); }
 .chart-close-button { display:none; width:44px; height:44px; border-radius:999px; color:#0f172a; background:rgba(255,255,255,.88); box-shadow:0 14px 32px rgba(15,23,42,.20); font-size:1.8rem; line-height:1; }
 .chart-wrap { position:relative; height:420px; }
-.chart-surface.is-fullscreen,.chart-surface:fullscreen { position:fixed; inset:0; z-index:9999; width:100vw; height:100vh; max-width:none; margin:0; border-radius:0; padding:max(18px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left)); background:#ffffff; display:flex; flex-direction:column; overflow:hidden; }
+.chart-surface.is-fullscreen,.chart-surface:fullscreen { position:fixed; inset:0; z-index:9999; width:100vw; height:100vh; max-width:none; margin:0; border-radius:0; padding:max(18px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left)); background:#fff!important; background-image:none!important; display:flex; flex-direction:column; overflow:hidden; }
+.chart-surface.is-fullscreen::backdrop,.chart-surface:fullscreen::backdrop { background:#fff!important; background-image:none!important; }
 .chart-surface.is-fullscreen .panel-header,.chart-surface:fullscreen .panel-header { flex:0 0 auto; margin-bottom:12px; }
 .chart-surface.is-fullscreen .chart-wrap,.chart-surface:fullscreen .chart-wrap { flex:1 1 auto; height:auto; min-height:0; }
 .chart-surface.is-fullscreen .chart-action-button,.chart-surface:fullscreen .chart-action-button { display:none; }
