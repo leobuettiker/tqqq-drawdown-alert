@@ -110,8 +110,9 @@ $drawdownClass = $drawdown === null ? 'neutral' : ($drawdown <= -30 ? 'danger' :
 <section class="cards-grid">
 <article class="stat-card"><div class="stat-card__icon">◇</div><div><div class="stat-card__label">ATH NAV</div><div class="stat-card__value"><?= $ath ? format_decimal($ath['ath_nav'], 4) : '–' ?></div><div class="stat-card__hint"><?= $ath ? h($ath['ath_date']) : 'Not computed yet' ?></div></div></article>
 <article class="stat-card stat-card--<?= h($drawdownClass) ?>"><div class="stat-card__icon">↘</div><div><div class="stat-card__label">Current drawdown</div><div class="stat-card__value"><?= $drawdown !== null ? format_percent($drawdown, 2) : '–' ?></div><div class="stat-card__hint">Against stored ATH</div></div></article>
-<article class="stat-card"><div class="stat-card__icon">↻</div><div><div class="stat-card__label">Latest import</div><div class="stat-card__value stat-card__value--small"><?= $importJob ? h($importJob['finished_at']) : '–' ?></div><div class="stat-card__hint"><?= $importJob ? h($importJob['status']) . ' · ' . (int)$importJob['rows_processed'] . ' rows' : 'No job log' ?></div></div></article>
-<article class="stat-card"><div class="stat-card__icon">☷</div><div><div class="stat-card__label">History</div><div class="stat-card__value"><?= format_decimal($priceCount, 0) ?></div><div class="stat-card__hint">stored NAV rows</div></div></article>
+</section>
+<section class="content-grid">
+<article class="panel panel--chart chart-surface" id="chartSurface"><div class="panel-header"><div><h2>NAV history, last 30 trading days</h2><p>The ATH line shows the currently stored all-time high.</p></div><div class="chart-actions"><div class="chart-badge">NAV · USD</div><button type="button" class="chart-action-button" id="chartFullscreenBtn">⛶ Fullscreen</button><button type="button" class="chart-close-button" id="chartFullscreenClose">×</button></div></div><div class="chart-wrap"><canvas id="navChart"></canvas></div></article>
 </section>
 <section class="panel summary-panel">
 <div class="panel-header"><div><h2>Latest AI market summary</h2><p><?= $latestSummary ? h($latestSummary['subject']) : 'Summary status' ?></p></div><div class="chart-badge">AI Summary</div></div>
@@ -122,8 +123,11 @@ $drawdownClass = $drawdown === null ? 'neutral' : ($drawdown <= -30 ? 'danger' :
 <div class="summary-text"><?= h($summaryUnavailableMessage ?? 'No AI summary generated yet.') ?></div>
 <?php endif; ?>
 </section>
+<section class="cards-grid">
+<article class="stat-card"><div class="stat-card__icon">↻</div><div><div class="stat-card__label">Latest import</div><div class="stat-card__value stat-card__value--small"><?= $importJob ? h($importJob['finished_at']) : '–' ?></div><div class="stat-card__hint"><?= $importJob ? h($importJob['status']) . ' · ' . (int)$importJob['rows_processed'] . ' rows' : 'No job log' ?></div></div></article>
+<article class="stat-card"><div class="stat-card__icon">☷</div><div><div class="stat-card__label">History</div><div class="stat-card__value"><?= format_decimal($priceCount, 0) ?></div><div class="stat-card__hint">stored NAV rows</div></div></article>
+</section>
 <section class="content-grid">
-<article class="panel panel--chart chart-surface" id="chartSurface"><div class="panel-header"><div><h2>NAV history, last 30 trading days</h2><p>The ATH line shows the currently stored all-time high.</p></div><div class="chart-actions"><div class="chart-badge">NAV · USD</div><button type="button" class="chart-action-button" id="chartFullscreenBtn">⛶ Fullscreen</button><button type="button" class="chart-close-button" id="chartFullscreenClose">×</button></div></div><div class="chart-wrap"><canvas id="navChart"></canvas></div></article>
 <aside class="panel panel--side"><h2>System status</h2><div class="timeline"><div class="timeline-item"><div class="timeline-dot"></div><div><strong>Data import</strong><span><?= $importJob ? h($importJob['finished_at']) : 'Never run' ?></span></div></div><div class="timeline-item"><div class="timeline-dot"></div><div><strong>Alert-Check</strong><span><?= $alertJob ? h($alertJob['finished_at']) : 'Never run' ?></span></div></div><div class="timeline-item"><div class="timeline-dot"></div><div><strong>AI Summary</strong><span><?= $summaryJob ? h($summaryJob['finished_at']) : 'Never run' ?></span></div></div><div class="timeline-item"><div class="timeline-dot <?= $lastError ? 'timeline-dot--error' : 'timeline-dot--ok' ?>"></div><div><strong>Latest error</strong><span><?= $lastError ? h($lastError['finished_at']) : 'No errors in the log' ?></span></div></div></div><?php if ($lastError): ?><div class="error-box"><strong><?= h($lastError['job_name']) ?></strong><p><?= h(short_text((string)$lastError['message'], 240)) ?></p></div><?php else: ?><div class="calm-box"><strong>All quiet</strong><p>No error is currently stored in the job log.</p></div><?php endif; ?></aside>
 </section>
 </main>
