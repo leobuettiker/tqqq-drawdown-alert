@@ -1,0 +1,5 @@
+# Optional additional HTTP Basic Auth
+#AuthType Basic
+#AuthName "Restricted"
+#AuthUserFile /absolute/path/.htpasswd
+#Require valid-user
