@@ -154,7 +154,6 @@ try {
         $lastRunStart = new DateTimeImmutable((string)$lastRun['finished_at']);
     }
 
-    // Use the longer lookback: at least the configured minimum interval, or longer if the last successful run is older.
     $periodStart = $lastRunStart === null ? $minimumStart : min($minimumStart, $lastRunStart);
     $periodStartSql = $periodStart->format('Y-m-d H:i:s');
     $periodStartDate = $periodStart->format('Y-m-d');
@@ -178,11 +177,7 @@ try {
         throw new RuntimeException('No start price found for summary period.');
     }
 
-    $statsStmt = $pdo->prepare(
-        'SELECT COUNT(*) AS rows_count, MIN(nav) AS min_nav, MAX(nav) AS max_nav
-         FROM price_history
-         WHERE ticker = :ticker AND price_date >= :period_start'
-    );
+    $statsStmt = $pdo->prepare('SELECT COUNT(*) AS rows_count, MIN(nav) AS min_nav, MAX(nav) AS max_nav FROM price_history WHERE ticker = :ticker AND price_date >= :period_start');
     $statsStmt->execute(['ticker' => $ticker, 'period_start' => $periodStartDate]);
     $stats = $statsStmt->fetch() ?: [];
 
@@ -205,15 +200,12 @@ try {
         'period_end' => $periodEndSql,
         'latest_nav_date' => $latest['price_date'],
         'latest_nav' => format_decimal($latest['nav'], 4),
-        'period_start_nav_date' => $startPrice['price_date'],
-        'period_start_nav' => format_decimal($startPrice['nav'], 4),
         'period_change_percent' => format_percent($periodChangePercent, 2),
         'ath_date' => $ath['ath_date'],
         'ath_nav' => format_decimal($ath['ath_nav'], 4),
         'current_drawdown' => format_percent($currentDrawdown, 2),
         'period_min_nav' => format_decimal($stats['min_nav'] ?? null, 4),
         'period_max_nav' => format_decimal($stats['max_nav'] ?? null, 4),
-        'period_rows' => (int)($stats['rows_count'] ?? 0),
         'active_unconfirmed_alerts' => $activeAlerts,
         'confirmed_buys_in_period' => $confirmedBuys,
     ];
@@ -221,24 +213,29 @@ try {
     $prompt = "You are writing a short upbeat periodic investment summary email in English.\n";
     $prompt .= "Use the local NAV data below and perform web research about the recent market context for TQQQ, Nasdaq-100, QQQ, large-cap technology stocks, interest rates, and AI/semiconductor sentiment during the same period.\n";
     $prompt .= "Write exactly three short paragraphs. Keep it positive and calm. If performance was weak, frame it constructively as volatility and a potential disciplined buying opportunity.\n";
-    $prompt .= "Do not give personalized financial advice, do not mention that you are an AI, and do not include markdown headings or bullet points. Plain text only.\n\n";
+    $prompt .= "Plain text only.\n\n";
     $prompt .= "Local data:\n" . json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
     $summaryText = summary_openai_response($summaryConfig, $prompt);
 
     $subjectPrefix = trim((string)($mailConfig['subject_prefix'] ?? '[TQQQ]'));
     $subject = $subjectPrefix . ' Periodic summary: ' . $periodStart->format('Y-m-d') . ' to ' . $now->format('Y-m-d');
-    $body = $summaryText . "\n\n";
-    $body .= "---\n";
-    $body .= "Period: " . $periodStart->format('Y-m-d') . " to " . $now->format('Y-m-d') . "\n";
-    $body .= "Latest NAV: " . $data['latest_nav'] . " on " . $data['latest_nav_date'] . "\n";
-    $body .= "Period change: " . $data['period_change_percent'] . "\n";
-    $body .= "Current drawdown: " . $data['current_drawdown'] . "\n";
+
+    $insertSummary = $pdo->prepare('INSERT INTO periodic_summary (ticker, period_start, period_end, subject, summary_text, created_at) VALUES (:ticker, :period_start, :period_end, :subject, :summary_text, :created_at)');
+    $insertSummary->execute([
+        'ticker' => $ticker,
+        'period_start' => $periodStartSql,
+        'period_end' => $periodEndSql,
+        'subject' => $subject,
+        'summary_text' => $summaryText,
+        'created_at' => $startedAt,
+    ]);
+
+    $body = $summaryText . "\n\n---\nPeriod: " . $periodStart->format('Y-m-d') . " to " . $now->format('Y-m-d');
 
     summary_send_mail($mailConfig, $subject, $body);
-    log_job($jobName, 'success', 'Periodic summary sent for ' . $ticker . ' from ' . $periodStartSql . ' to ' . $periodEndSql . '.', $startedAt, (int)$data['period_rows']);
 
-    // No output on success.
+    log_job($jobName, 'success', 'Periodic summary sent and stored for ' . $ticker . '.', $startedAt, (int)($stats['rows_count'] ?? 0));
 } catch (Throwable $e) {
     log_job($jobName, 'error', $e->getMessage(), $startedAt, null);
     echo cron_error_output($jobName, 'Periodic summary failed.', $e);
