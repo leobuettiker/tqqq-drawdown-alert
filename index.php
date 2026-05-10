@@ -4,6 +4,21 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/app/functions.php';
 
+function render_summary_text(string $text): string
+{
+    $escaped = h($text);
+    $escaped = preg_replace_callback(
+        '/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/',
+        static function (array $m): string {
+            $label = $m[1];
+            $url = $m[2];
+            return '<a href="' . $url . '" target="_blank" rel="noopener noreferrer">' . $label . '</a>';
+        },
+        $escaped
+    );
+    return nl2br((string)$escaped);
+}
+
 $config = app_config();
 $ticker = strtoupper($config['source']['ticker'] ?? 'TQQQ');
 $title = $config['app']['dashboard_title'] ?? 'TQQQ NAV Monitor';
@@ -70,7 +85,10 @@ $drawdownClass = $drawdown === null ? 'neutral' : ($drawdown <= -30 ? 'danger' :
         .top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
         .nav-lock{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;text-decoration:none;font-weight:900;color:#3730a3;background:rgba(79,70,229,.10);border:1px solid rgba(79,70,229,.14)}
         .summary-panel{margin-top:18px;margin-bottom:18px}
-        .summary-text{white-space:pre-line;line-height:1.75;color:#334155;font-size:1rem}
+        .summary-text{white-space:normal;line-height:1.55;color:#334155;font-size:1rem}
+        .summary-text br + br{display:block;content:"";margin-top:.55rem}
+        .summary-text a{color:#3730a3;font-weight:800;text-decoration:none;border-bottom:1px solid rgba(55,48,163,.28)}
+        .summary-text a:hover{border-bottom-color:#3730a3}
         .summary-meta{margin-top:14px;color:#64748b;font-size:.9rem;font-weight:700}
         @media(max-width:620px){.top-actions{width:100%;justify-content:flex-start}}
     </style>
@@ -98,7 +116,7 @@ $drawdownClass = $drawdown === null ? 'neutral' : ($drawdown <= -30 ? 'danger' :
 <section class="panel summary-panel">
 <div class="panel-header"><div><h2>Latest AI market summary</h2><p><?= $latestSummary ? h($latestSummary['subject']) : 'Summary status' ?></p></div><div class="chart-badge">AI Summary</div></div>
 <?php if ($latestSummary): ?>
-<div class="summary-text"><?= nl2br(h($latestSummary['summary_text'])) ?></div>
+<div class="summary-text"><?= render_summary_text((string)$latestSummary['summary_text']) ?></div>
 <div class="summary-meta">Generated <?= h($latestSummary['created_at']) ?> · Summary cron <?= $summaryJob ? h($summaryJob['status']) : 'unknown' ?></div>
 <?php else: ?>
 <div class="summary-text"><?= h($summaryUnavailableMessage ?? 'No AI summary generated yet.') ?></div>
