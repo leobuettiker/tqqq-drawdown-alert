@@ -135,7 +135,7 @@ $defaultDateTime = date('Y-m-d\TH:i');
             </div>
         </div>
         <div class="header-actions">
-            <a class="nav-button" href="../../index.php">🔓 Dashboard</a>
+            <a class="nav-button" href="../../index.php">&#128275; Dashboard</a>
             <?php if ($authenticated): ?><a class="logout" href="?logout=1">Log out</a><?php endif; ?>
         </div>
     </header>
