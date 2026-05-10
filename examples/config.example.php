@@ -37,4 +37,13 @@ return [
         'reply_to' => 'CHANGE_ME_FROM@example.com',
         'subject_prefix' => '[TQQQ]',
     ],
+
+    'summary' => [
+        'enabled' => true,
+        'minimum_interval_days' => 7,
+        'openai_api_key' => 'CHANGE_ME_OPENAI_API_KEY',
+        'openai_model' => 'gpt-5',
+        'reasoning_effort' => 'low',
+        'openai_timeout_seconds' => 90,
+    ],
 ];
