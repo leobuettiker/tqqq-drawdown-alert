@@ -69,7 +69,7 @@ $drawdownClass = $drawdown === null ? 'neutral' : ($drawdown <= -30 ? 'danger' :
     <style>
         .top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
         .nav-lock{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;text-decoration:none;font-weight:900;color:#3730a3;background:rgba(79,70,229,.10);border:1px solid rgba(79,70,229,.14)}
-        .summary-panel{margin-top:18px}
+        .summary-panel{margin-top:18px;margin-bottom:18px}
         .summary-text{white-space:pre-line;line-height:1.75;color:#334155;font-size:1rem}
         .summary-meta{margin-top:14px;color:#64748b;font-size:.9rem;font-weight:700}
         @media(max-width:620px){.top-actions{width:100%;justify-content:flex-start}}
