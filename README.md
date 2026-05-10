@@ -18,6 +18,8 @@ A public example dashboard is available at: https://tqqq.buettiker.org
 - ATH tracking based on imported NAV values
 - Drawdown strategy levels from a local CSV file
 - Cron-friendly alert output: no output means no alert; output means error or active unconfirmed alert
+- Optional PHP `mail()` configuration for controlled email sender, recipient and subject metadata
+- Browser-callable `mail-test.php`, disabled by default, for validating local mail delivery
 - Protected buy confirmation screen
 - Public dashboard without strategy, buy amount, buy price, or alert details
 - Mobile-friendly UI
@@ -28,6 +30,7 @@ A public example dashboard is available at: https://tqqq.buettiker.org
 ```text
 /
 ├── index.php
+├── mail-test.php
 ├── assets/
 │   └── style.css
 ├── app/
@@ -75,6 +78,26 @@ cp examples/local.htaccess.example local/.htaccess
 
 Then edit `local/config.php`.
 
+### Mail configuration
+
+The example configuration contains a `mail` block:
+
+```php
+'mail' => [
+    'enabled' => true,
+    'test_enabled' => false,
+    'to_email' => 'CHANGE_ME_TO@example.com',
+    'from_email' => 'CHANGE_ME_FROM@example.com',
+    'from_name' => 'TQQQ Drawdown Alert',
+    'reply_to' => 'CHANGE_ME_FROM@example.com',
+    'subject_prefix' => '[TQQQ]',
+],
+```
+
+`mail-test.php` uses this configuration to send one test email with PHP `mail()`. The test script is disabled by default. Set `test_enabled` to `true` temporarily when you want to test outgoing mail, then set it back to `false` after the test.
+
+This uses the hosting account's normal PHP `mail()` setup. It does not require SMTP credentials in this project.
+
 ## Installation
 
 ### 1. Upload the files
@@ -106,6 +129,8 @@ Set at least:
 'confirm_password' => 'CHANGE_ME_CONFIRM_PASSWORD',
 ```
 
+Also configure the `mail` block if you want to test outgoing mail or use direct mail delivery later.
+
 Use a long random value for `confirm_password`.
 
 ### 3. Create the database schema
@@ -128,15 +153,39 @@ Example:
 
 ```csv
 asset_ticker,level_name,drawdown_percent,amount_to_buy
-TQQQ,Level 1,-20,1000
-TQQQ,Level 2,-30,1500
-TQQQ,Level 3,-40,2500
-TQQQ,Level 4,-50,4000
+TQQQ,Level 1,-20,500
+TQQQ,Level 2,-30,750
+TQQQ,Level 3,-40,1250
+TQQQ,Level 4,-50,1500
 ```
 
 `drawdown_percent` must be negative.
 
-### 5. Run the importer manually
+### 5. Test outgoing mail
+
+Temporarily enable the mail test in `local/config.php`:
+
+```php
+'test_enabled' => true,
+```
+
+Then open the mail test script in the browser:
+
+```text
+mail-test.php
+```
+
+The page sends one test email using PHP `mail()` and the values from `local/config.php`.
+
+Expected result: the browser shows whether `mail()` returned success. Receiving the test email confirms that the hosting account accepts the configured sender/recipient combination.
+
+After testing, set the flag back to:
+
+```php
+'test_enabled' => false,
+```
+
+### 6. Run the importer manually
 
 From SSH:
 
@@ -154,13 +203,13 @@ php app/import_tqqq_nav.php
 
 Expected result: no output on success.
 
-### 6. Open the dashboard
+### 7. Open the dashboard
 
 Open the hosting URL where `index.php` is deployed.
 
 The dashboard intentionally does not show strategy levels, configured buy amounts, confirmed buy quantities, confirmed buy prices, or alert details.
 
-### 7. Open the confirmation screen
+### 8. Open the confirmation screen
 
 The confirmation UI is available at:
 
@@ -170,7 +219,7 @@ protected/confirm/index.php
 
 It is protected by the configured `confirm_password`. The included `.htaccess` also contains commented instructions for optional HTTP Basic Auth.
 
-### 8. Configure cron jobs
+### 9. Configure cron jobs
 
 Create two scheduled commands on your hosting account.
 
@@ -230,6 +279,18 @@ The alert job:
 
 Each strategy level must be confirmed individually.
 
+### Mail test
+
+`mail-test.php` is a small operational helper. It:
+
+1. Loads `local/config.php`.
+2. Requires `mail.test_enabled` to be `true`.
+3. Reads the `mail` configuration block.
+4. Sends one UTF-8 plain text test email using PHP `mail()`.
+5. Shows the result in the browser.
+
+It is intentionally simple and does not store any mail state in the database.
+
 ### Buy confirmation
 
 For every confirmation, the tool stores:
@@ -246,6 +307,8 @@ For every confirmation, the tool stores:
 - Copy `examples/local.htaccess.example` to `local/.htaccess`.
 - The confirmation area requires the configured `confirm_password`.
 - Optional HTTP Basic Auth can be enabled in `protected/confirm/.htaccess`.
+- `mail-test.php` is disabled by default and only sends mail when `mail.test_enabled` is explicitly set to `true`.
+- Set `mail.test_enabled` back to `false` after testing.
 - Never commit or upload production secrets to a public repository.
 
 ## Updating
@@ -261,6 +324,7 @@ protected/
 examples/
 sql/
 index.php
+mail-test.php
 .htaccess
 README.md
 ```
