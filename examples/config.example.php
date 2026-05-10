@@ -27,4 +27,13 @@ return [
         'confirm_password' => 'CHANGE_ME_CONFIRM_PASSWORD',
         'dashboard_title' => 'TQQQ NAV Monitor',
     ],
+
+    'mail' => [
+        'enabled' => true,
+        'to_email' => 'CHANGE_ME_TO@example.com',
+        'from_email' => 'CHANGE_ME_FROM@example.com',
+        'from_name' => 'TQQQ Drawdown Alert',
+        'reply_to' => 'CHANGE_ME_FROM@example.com',
+        'subject_prefix' => '[TQQQ]',
+    ],
 ];
