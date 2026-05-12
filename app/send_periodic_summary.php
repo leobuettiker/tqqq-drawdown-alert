@@ -206,14 +206,12 @@ try {
         'current_drawdown' => format_percent($currentDrawdown, 2),
         'period_min_nav' => format_decimal($stats['min_nav'] ?? null, 4),
         'period_max_nav' => format_decimal($stats['max_nav'] ?? null, 4),
-        'active_unconfirmed_alerts' => $activeAlerts,
-        'confirmed_buys_in_period' => $confirmedBuys,
     ];
 
     $prompt = "You are writing a short upbeat periodic investment summary email in English.\n";
     $prompt .= "Use the local NAV data below and perform web research about the recent market context for TQQQ, Nasdaq-100, QQQ, large-cap technology stocks, interest rates, and AI/semiconductor sentiment during the same period.\n";
     $prompt .= "Write exactly three short paragraphs. Keep it positive and calm. If performance was weak, frame it constructively as volatility and a potential disciplined buying opportunity.\n";
-    $prompt .= "Plain text only.\n\n";
+    $prompt .= "Plain text only. Do not mention internal alerts, buy confirmations, position sizing, or any private strategy status.\n\n";
     $prompt .= "Local data:\n" . json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
     $summaryText = summary_openai_response($summaryConfig, $prompt);
@@ -231,7 +229,11 @@ try {
         'created_at' => $startedAt,
     ]);
 
-    $body = $summaryText . "\n\n---\nPeriod: " . $periodStart->format('Y-m-d') . " to " . $now->format('Y-m-d');
+    $privateStatus = "Private alert status:\n";
+    $privateStatus .= "Open unconfirmed alerts: " . $activeAlerts . "\n";
+    $privateStatus .= "Confirmed buys in period: " . $confirmedBuys;
+
+    $body = $summaryText . "\n\n---\nPeriod: " . $periodStart->format('Y-m-d') . " to " . $now->format('Y-m-d') . "\n\n" . $privateStatus;
 
     summary_send_mail($mailConfig, $subject, $body);
 
