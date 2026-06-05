@@ -92,6 +92,7 @@ if (isset($_SESSION['flash_message'])) {
 }
 
 $openAlerts = [];
+$strategyRows = [];
 $strategyByKey = [];
 $latest = null;
 $ath = null;
@@ -99,7 +100,8 @@ $currentDrawdown = null;
 
 if ($authenticated) {
     try {
-        foreach (read_strategy_csv($config['paths']['strategy_csv']) as $row) {
+        $strategyRows = read_strategy_csv($config['paths']['strategy_csv']);
+        foreach ($strategyRows as $row) {
             $strategyByKey[$row['asset_ticker'] . '|' . $row['level_name']] = $row;
         }
         $stmt = db()->query('SELECT * FROM drawdown_alert_state WHERE confirmed_at IS NULL AND reset_at IS NULL ORDER BY triggered_at ASC, ticker ASC, drawdown_percent DESC');
@@ -160,6 +162,51 @@ $defaultDateTime = date('Y-m-d\TH:i');
             <article class="summary-card"><span>ATH</span><strong><?= $ath ? format_decimal($ath['ath_nav'], 4) : '–' ?></strong><small><?= $ath ? h($ath['ath_date']) : 'Not computed' ?></small></article>
             <article class="summary-card summary-card--accent"><span>Current drawdown</span><strong><?= $currentDrawdown !== null ? format_percent($currentDrawdown, 2) : '–' ?></strong><small>against ATH</small></article>
             <article class="summary-card"><span>Open alerts</span><strong><?= count($openAlerts) ?></strong><small>confirm individually</small></article>
+        </section>
+
+        <section class="strategy-panel">
+            <div class="strategy-panel__header">
+                <div>
+                    <div class="kicker">Strategy</div>
+                    <h2>Buy points</h2>
+                </div>
+                <div class="strategy-panel__meta">Thresholds from current ATH<?= $ath ? ' ' . h(format_decimal($ath['ath_nav'], 4)) : '' ?></div>
+            </div>
+            <?php if (count($strategyRows) === 0): ?>
+                <p class="strategy-empty">No strategy rows found.</p>
+            <?php else: ?>
+                <div class="strategy-table-wrap">
+                    <table class="strategy-table">
+                        <thead>
+                            <tr>
+                                <th>Level</th>
+                                <th>Drawdown</th>
+                                <th>Entry NAV</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($strategyRows as $strategy): ?>
+                                <?php
+                                $strategyTicker = strtoupper((string)$strategy['asset_ticker']);
+                                $drawdownPercent = (float)$strategy['drawdown_percent'];
+                                $entryNav = $ath ? (float)$ath['ath_nav'] * (1.0 + ($drawdownPercent / 100.0)) : null;
+                                $isCurrentTicker = $strategyTicker === $ticker;
+                                $isReached = $isCurrentTicker && $currentDrawdown !== null && $currentDrawdown <= $drawdownPercent;
+                                ?>
+                                <tr class="<?= $isReached ? 'is-reached' : '' ?>">
+                                    <td><strong><?= h($strategy['level_name']) ?></strong><small><?= h($strategyTicker) ?></small></td>
+                                    <td><?= format_percent($strategy['drawdown_percent'], 2) ?></td>
+                                    <td><?= $entryNav !== null ? format_decimal($entryNav, 4) : '–' ?></td>
+                                    <td><?= format_decimal($strategy['amount_to_buy'], 2) ?></td>
+                                    <td><span class="strategy-status <?= $isReached ? 'strategy-status--reached' : '' ?>"><?= $isReached ? 'Reached' : 'Waiting' ?></span></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
         </section>
 
         <main class="alerts-grid">
