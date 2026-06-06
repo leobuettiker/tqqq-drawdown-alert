@@ -27,7 +27,7 @@ function summary_send_mail(array $mailConfig, string $subject, string $body): vo
 
     $to = trim((string)($mailConfig['to_email'] ?? ''));
     $fromEmail = trim((string)($mailConfig['from_email'] ?? ''));
-    $fromName = trim((string)($mailConfig['from_name'] ?? 'TQQQ Drawdown Alert'));
+    $fromName = trim((string)($mailConfig['from_name'] ?? 'TQQQ AI Insight'));
     $replyTo = trim((string)($mailConfig['reply_to'] ?? $fromEmail));
 
     if ($to === '' || $fromEmail === '') {
