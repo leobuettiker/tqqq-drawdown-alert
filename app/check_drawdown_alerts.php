@@ -14,16 +14,50 @@ set_error_handler(static function (int $severity, string $message, string $file,
     throw new ErrorException($message, 0, $severity, $file, $line);
 });
 
+function alert_header_value(string $value): string
+{
+    return trim(str_replace(["\r", "\n"], '', $value));
+}
+
+function alert_send_mail(array $mailConfig, string $subject, string $body): void
+{
+    if (!(bool)($mailConfig['enabled'] ?? false)) {
+        throw new RuntimeException('Mail is disabled in configuration.');
+    }
+
+    $to = trim((string)($mailConfig['to_email'] ?? ''));
+    $fromEmail = trim((string)($mailConfig['from_email'] ?? ''));
+    $fromName = trim((string)($mailConfig['from_name'] ?? 'TQQQ Drawdown Alert'));
+    $replyTo = trim((string)($mailConfig['reply_to'] ?? $fromEmail));
+
+    if ($to === '' || $fromEmail === '') {
+        throw new RuntimeException('Missing mail.to_email or mail.from_email configuration.');
+    }
+
+    $headers = [
+        'From: ' . alert_header_value($fromName) . ' <' . alert_header_value($fromEmail) . '>',
+        'Reply-To: ' . alert_header_value($replyTo),
+        'MIME-Version: 1.0',
+        'Content-Type: text/plain; charset=UTF-8',
+        'X-Mailer: PHP/' . phpversion(),
+    ];
+
+    if (!mail($to, $subject, $body, implode("\r\n", $headers))) {
+        throw new RuntimeException('mail() returned false while sending the drawdown alert.');
+    }
+}
+
 try {
     $config = app_config();
+    $mailConfig = $config['mail'] ?? [];
     $strategies = read_strategy_csv($config['paths']['strategy_csv']);
     if (count($strategies) === 0) {
         throw new RuntimeException('No drawdown strategies configured.');
     }
 
     $pdo = db();
-    $outputBlocks = [];
-    $stateIdsForOutput = [];
+    $alertBlocks = [];
+    $stateIdsForMail = [];
     $processed = 0;
 
     foreach ($strategies as $strategy) {
@@ -93,8 +127,8 @@ try {
         $pdo->commit();
 
         if ($state && $state['confirmed_at'] === null) {
-            $stateIdsForOutput[] = (int)$state['id'];
-            $outputBlocks[] = [
+            $stateIdsForMail[] = (int)$state['id'];
+            $alertBlocks[] = [
                 'state' => $state,
                 'strategy' => $strategy,
                 'latest' => $latest,
@@ -104,9 +138,9 @@ try {
         }
     }
 
-    if (count($outputBlocks) > 0) {
-        $tickers = array_values(array_unique(array_map(function ($b) { return $b['state']['ticker']; }, $outputBlocks)));
-        $first = $outputBlocks[0];
+    if (count($alertBlocks) > 0) {
+        $tickers = array_values(array_unique(array_map(function ($b) { return $b['state']['ticker']; }, $alertBlocks)));
+        $first = $alertBlocks[0];
 
         $text = "TQQQ drawdown alerts active" . PHP_EOL;
         $text .= str_repeat('=', 30) . PHP_EOL . PHP_EOL;
@@ -120,7 +154,7 @@ try {
         $text .= "Active unconfirmed alerts" . PHP_EOL;
         $text .= str_repeat('-', 36) . PHP_EOL;
 
-        foreach ($outputBlocks as $idx => $block) {
+        foreach ($alertBlocks as $idx => $block) {
             $state = $block['state'];
             $strategy = $block['strategy'];
             $text .= PHP_EOL;
@@ -134,12 +168,16 @@ try {
 
         $text .= PHP_EOL . "Please confirm each buy individually in the protected confirmation area." . PHP_EOL;
 
-        $placeholders = implode(',', array_fill(0, count($stateIdsForOutput), '?'));
-        $update = $pdo->prepare('UPDATE drawdown_alert_state SET last_output_at = ? WHERE id IN (' . $placeholders . ')');
-        $update->execute(array_merge([now_sql()], $stateIdsForOutput));
+        $subjectPrefix = trim((string)($mailConfig['subject_prefix'] ?? '[TQQQ]'));
+        $subject = $subjectPrefix . ' Drawdown alert: ' . count($stateIdsForMail) . ' active alert(s)';
+        alert_send_mail($mailConfig, $subject, $text);
 
-        log_job($jobName, 'success', 'Alert output produced for ' . count($stateIdsForOutput) . ' active alert(s).', $startedAt, $processed);
-        echo $text;
+        $placeholders = implode(',', array_fill(0, count($stateIdsForMail), '?'));
+        $update = $pdo->prepare('UPDATE drawdown_alert_state SET last_output_at = ? WHERE id IN (' . $placeholders . ')');
+        $update->execute(array_merge([now_sql()], $stateIdsForMail));
+
+        log_job($jobName, 'success', 'Alert mail sent for ' . count($stateIdsForMail) . ' active alert(s).', $startedAt, $processed);
+        // Important: no output when alert mail was sent successfully.
     } else {
         log_job($jobName, 'success', 'No active alerts.', $startedAt, $processed);
         // Important: no output when no alert is active.
